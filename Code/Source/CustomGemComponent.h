@@ -4,6 +4,12 @@
 #include <AzCore/Component/Component.h>
 #include <CustomGem/CustomGemInterface.h>
 
+#include <Atom/RPI.Public/Scene.h>
+#include <Atom/RPI.Reflect/Model/ModelAsset.h>
+#include <Atom/RPI.Reflect/Buffer/BufferAssetCreator.h>
+// #include <Atom/RPI.Reflect/Model/ModelLodAssetCreator.h>
+#include <Atom/Feature/Mesh/MeshFeatureProcessorInterface.h>
+
 namespace CustomGem
 {
     class CustomGemComponent
@@ -64,6 +70,12 @@ namespace CustomGem
         AZ::Quaternion m_exampleOfQuaternion; // does not show the fourth value.
         AZStd::vector<AZ::EntityId> m_exampleOfEntities;
         AZ::Color m_exampleOfColor;
+        AZ::Data::Asset<AZ::RPI::StreamingImageAsset> m_imageAsset;
+        
+        AZ::Render::MeshFeatureProcessorInterface* m_meshFp = nullptr;
+        AZ::Data::Asset<AZ::RPI::ModelAsset> m_runtimeModel; // keep-alive
+        AZ::Render::MeshFeatureProcessorInterface::MeshHandle m_meshHandle;
+        AZ::Data::Asset<AZ::RPI::ModelAsset> BuildModel();
 
         AZ::Crc32 OnAnyChanged();
 
