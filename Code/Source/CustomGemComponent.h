@@ -6,7 +6,8 @@
 
 #include <Atom/RPI.Public/Scene.h>
 #include <Atom/RPI.Reflect/Model/ModelAsset.h>
-#include <Atom/RPI.Reflect/Buffer/BufferAssetCreator.h>
+#include <Atom/RPI.Reflect/Model/ModelAssetCreator.h>
+#include <Atom/RPI.Reflect/Model/ModelAssetHelpers.h>
 // #include <Atom/RPI.Reflect/Model/ModelLodAssetCreator.h>
 #include <Atom/Feature/Mesh/MeshFeatureProcessorInterface.h>
 
@@ -71,6 +72,7 @@ namespace CustomGem
         AZStd::vector<AZ::EntityId> m_exampleOfEntities;
         AZ::Color m_exampleOfColor;
         AZ::Data::Asset<AZ::RPI::StreamingImageAsset> m_imageAsset;
+        AZ::Data::Asset<AZ::RPI::ModelAsset> m_modelAsset = { AZ::Data::AssetLoadBehavior::QueueLoad };
         
         AZ::Render::MeshFeatureProcessorInterface* m_meshFp = nullptr;
         AZ::Data::Asset<AZ::RPI::ModelAsset> m_runtimeModel; // keep-alive

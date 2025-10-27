@@ -14,7 +14,6 @@
 #include <AzCore/Debug/Trace.h>
 
 
-
 namespace CustomGem
 {
     //AZ_COMPONENT_IMPL(CustomGemComponent, "CustomGemComponent", "{84F70987-84AC-4670-9F3D-16640ED10BBE}");
@@ -28,6 +27,7 @@ namespace CustomGem
         , m_exampleOfSliderValue(20.0f)
         , exampleOfBool(true)
         , m_imageAsset()
+        , m_modelAsset()
     {}
 
     void CustomGemComponent::Activate()
@@ -45,81 +45,6 @@ namespace CustomGem
     }
 
     AZ::Data::Asset<AZ::RPI::ModelAsset> CustomGemComponent::BuildModel() {
-        // 3x3 meter quad (two triangles), centered at origin, +Z up
-        struct VertexPNTBuV
-        {
-            AZ::Vector3 position;
-            AZ::Vector3 normal;
-            AZ::Vector4 tangent;   // xyz = tangent, w = handedness (1 or -1)
-            AZ::Vector3 bitangent; // optional stream; included to match standard input
-            AZ::Vector2 uv;
-        };
-
-        float h = 1.5f;
-        AZ::Vector3 N  = AZ::Vector3(0.f, 0.f, 1.f);
-        AZ::Vector4 T  = AZ::Vector4(1.f, 0.f, 0.f, 1.f); // +X, RH = +1
-        AZ::Vector3 B  = AZ::Vector3(0.f, 1.f, 0.f);
-
-        const VertexPNTBuV verts[4] = {
-            { {-h, -h, 0.f}, N, T, B, AZ::Vector2(0.f, 0.f) }, // 0
-            { { h, -h, 0.f}, N, T, B, AZ::Vector2(1.f, 0.f) }, // 1
-            { { h,  h, 0.f}, N, T, B, AZ::Vector2(1.f, 1.f) }, // 2
-            { {-h,  h, 0.f}, N, T, B, AZ::Vector2(0.f, 1.f) }, // 3
-        };
-        const uint16_t indices[6] = { 0,1,2,  0,2,3 };
-
-
-        // --- Create vertex buffer asset ---
-        AZ::RPI::BufferAssetCreator vbCreator;
-        AZ::Data::AssetId vbAssetId = AZ::Data::AssetId(AZ::Uuid::CreateRandom());
-
-        AZ::RHI::BufferDescriptor vbufferDesc;
-        vbufferDesc.m_bindFlags = AZ::RHI::BufferBindFlags::InputAssembly; // vertex/index usage
-        vbufferDesc.m_byteCount = sizeof(verts);
-
-        vbCreator.Begin(vbAssetId);
-        vbCreator.SetBuffer(verts, sizeof(verts), vbufferDesc);
-        
-
-        vbCreator.SetBufferViewDescriptor(
-            AZ::RHI::BufferViewDescriptor::CreateStructured(
-                /*byteOffset*/ 0,
-                /*elementCount*/ static_cast<uint32_t>(AZ_ARRAY_SIZE(verts)),
-                /*elementSize*/ static_cast<uint32_t>(sizeof(VertexPNTBuV))
-            )
-        );
-        
-        // Use the common pool for static input buffers
-        vbCreator.SetUseCommonPool(AZ::RPI::CommonBufferPoolType::StaticInputAssembly);
-
-        AZ::Data::Asset<AZ::RPI::BufferAsset> vbAsset;
-        vbCreator.End(vbAsset);
-
-
-        AZ::RPI::BufferAssetCreator ibCreator;
-        AZ::Data::AssetId ibAssetId = AZ::Data::AssetId(AZ::Uuid::CreateRandom());
-
-        AZ::RHI::BufferDescriptor ibufferDesc;
-        ibufferDesc.m_bindFlags = AZ::RHI::BufferBindFlags::InputAssembly; 
-        ibufferDesc.m_byteCount = sizeof(indices);
-
-        ibCreator.Begin(ibAssetId);
-
-        ibCreator.SetBuffer(indices, sizeof(indices), vbufferDesc);
-        ibCreator.SetBufferViewDescriptor(
-            AZ::RHI::BufferViewDescriptor::CreateTyped(
-                0,
-                static_cast<uint32_t>(AZ_ARRAY_SIZE(indices)),  // element COUNT
-                AZ::RHI::Format::R16_UINT
-            )
-        );
-
-        ibCreator.SetUseCommonPool(AZ::RPI::CommonBufferPoolType::StaticInputAssembly);
-        AZ::Data::Asset<AZ::RPI::BufferAsset> ibAsset;
-        ibCreator.End(ibAsset);
-
-
-        
         AZ::Data::Asset<AZ::RPI::ModelAsset> modelAsset;
         return modelAsset;
     }
@@ -135,6 +60,43 @@ namespace CustomGem
                 AZ_Printf("CustomGemComponent", "Loaded");
             }
         }
+
+        auto modelAssetPtr = AZStd::make_shared<AZ::RPI::ModelAsset>();
+        AZ::RPI::ModelAssetHelpers::CreateUnitCube(modelAssetPtr.get());
+
+        AZ::Data::Asset<AZ::RPI::ModelAsset> modelAsset(
+            AZ::Data::AssetId(AZ::Uuid::CreateRandom()),
+            modelAssetPtr.get(),  
+            AZ::Data::AssetLoadBehavior::PreLoad
+        ); 
+
+        // Scene
+        AZ::RPI::Scene* scene = AZ::RPI::Scene::GetSceneForEntityId(GetEntityId());
+        if (!scene)
+        {
+            AZ_Warning("CustomGemComponent", false, "No RPI scene found for entity");
+            return AZ::Edit::PropertyRefreshLevels::ValuesOnly;
+        }
+        // Interface
+        AZ::Render::MeshFeatureProcessorInterface* meshFeatureProcessor =
+        scene->GetFeatureProcessor<AZ::Render::MeshFeatureProcessorInterface>();
+
+        if (!meshFeatureProcessor)
+        {
+            AZ_Warning("CustomGemComponent", false, "Could not get MeshFeatureProcessorInterface");
+            return AZ::Edit::PropertyRefreshLevels::ValuesOnly;
+        }
+
+        // // Added To
+        AZ::Render::MeshHandleDescriptor descriptor;
+        descriptor.m_modelAsset = modelAsset;
+        AZ::Render::MeshFeatureProcessorInterface::MeshHandle meshHandle = meshFeatureProcessor->AcquireMesh(descriptor);
+
+        // Position it at your component’s vector position (or origin)
+        meshFeatureProcessor->SetTransform(meshHandle, AZ::Transform::CreateTranslation(m_exampleOfVector3));
+
+        AZ_Printf("CustomGemComponent", "Added a cube mesh to entity '%s'", GetEntity()->GetName().c_str());
+
         return AZ::Edit::PropertyRefreshLevels::ValuesOnly;
     }
     void CustomGemComponent::Reflect(AZ::ReflectContext* context)
@@ -153,6 +115,7 @@ namespace CustomGem
                 ->Field("Quaternion", &CustomGemComponent::m_exampleOfQuaternion)
                 ->Field("Color", &CustomGemComponent::m_exampleOfColor)
                 ->Field("Image Asset", &CustomGemComponent::m_imageAsset)
+                ->Field("Model Asset", &CustomGemComponent::m_modelAsset)
                 ;
 
             if (AZ::EditContext* editContext = serializeContext->GetEditContext())
@@ -213,6 +176,10 @@ namespace CustomGem
                     
                     ->DataElement(AZ::Edit::UIHandlers::Default, &CustomGemComponent::m_imageAsset,
                               "Image", "Pick a Image")
+                        ->Attribute(AZ::Edit::Attributes::ChangeNotify, &CustomGemComponent::OnAnyChanged)
+                    
+                    ->DataElement(AZ::Edit::UIHandlers::Default, &CustomGemComponent::m_modelAsset,
+                            "Model", "Pick a Model")
                         ->Attribute(AZ::Edit::Attributes::ChangeNotify, &CustomGemComponent::OnAnyChanged)
                     ;
             }
