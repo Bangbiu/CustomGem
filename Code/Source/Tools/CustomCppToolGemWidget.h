@@ -3,6 +3,11 @@
 #if !defined(Q_MOC_RUN)
 #include <AzToolsFramework/API/ToolsApplicationAPI.h>
 #include <QWidget>
+#include <QLineEdit>
+
+// Qt FS
+#include <QDir>
+#include <QFileInfoList>
 #endif
 
 namespace CustomCppToolGem
@@ -13,11 +18,20 @@ namespace CustomCppToolGem
         Q_OBJECT
     public:
         explicit CustomCppToolGemWidget(QWidget* parent = nullptr);
+    
+    protected:
+        // Drag & Drop overrides
+        void dragEnterEvent(QDragEnterEvent* event) override;
+        void dragMoveEvent(QDragMoveEvent* event) override;
+        void dropEvent(QDropEvent* event) override;
 
     private Q_SLOTS:
         void OnGenerateClicked();
+        void OnPathEntered();  
 
     private:
         void GenerateCubeEntityAtOrigin();
+        QLineEdit* m_pathEdit = nullptr;
+        
     };
 }

@@ -6,6 +6,9 @@
 #include <QVBoxLayout>
 #include <QPushButton>
 #include <QHBoxLayout>
+#include <QMimeData>
+#include <QDragEnterEvent>
+#include <QDropEvent>
 
 // Util
 #include <AzCore/Asset/AssetManager.h>
@@ -16,6 +19,7 @@
 
 #include <AzToolsFramework/API/ToolsApplicationAPI.h>
 #include <AzToolsFramework/API/EditorEntityAPI.h>
+#include <AzToolsFramework/API/EditorAssetSystemAPI.h>
 #include <AzToolsFramework/ToolsComponents/TransformComponent.h>
 
 // Atom (Model helpers)
@@ -25,15 +29,20 @@
 // Editor Mesh (preview in Editor)
 #include <AtomLyIntegration/CommonFeatures/Mesh/MeshComponentBus.h>
 #include <AtomLyIntegration/CommonFeatures/Mesh/MeshComponentConstants.h>
-#include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentConstants.h>
 #include <AzToolsFramework/Component/EditorComponentAPIBus.h>
 
 // Material
 #include <Atom/RPI.Reflect/Material/MaterialAsset.h>
 #include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentBus.h>
+#include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentConstants.h>
 #include <Atom/RPI.Reflect/Material/MaterialAssetCreator.h>
 #include <Atom/RPI.Reflect/Material/MaterialTypeAsset.h>
 #include <Atom/RPI.Edit/Material/MaterialUtils.h>
+
+//Browser
+#include <AzToolsFramework/AssetBrowser/Entries/AssetBrowserEntry.h>
+#include <AzToolsFramework/AssetBrowser/Entries/SourceAssetBrowserEntry.h>
+#include <AzToolsFramework/AssetBrowser/Entries/ProductAssetBrowserEntry.h>
 
 // Debug
 #include <AzCore/Debug/Trace.h>
@@ -42,11 +51,15 @@
 #include "CustomCppToolGemWidget.h"
 
 
+
 namespace CustomCppToolGem
 {
     CustomCppToolGemWidget::CustomCppToolGemWidget(QWidget* parent)
         : QWidget(parent)
     {
+
+        setAcceptDrops(true);
+
         auto* main = new QVBoxLayout(this);
 
         auto* intro = new QLabel(tr("Click the button to spawn a cube at world origin."), this);
@@ -57,46 +70,98 @@ namespace CustomCppToolGem
         row->addStretch(1);
         row->addWidget(btnGenerate);
         row->addStretch(1);
+
+        m_pathEdit = new QLineEdit(this);
+        m_pathEdit->setPlaceholderText(tr(R"(e.g. C:\Projects\MyGame\Assets or @projectroot@/Assets)"));
+        row->addWidget(m_pathEdit);
+
         main->addLayout(row);
 
         connect(btnGenerate, &QPushButton::clicked, this, &CustomCppToolGemWidget::OnGenerateClicked);
+        connect(m_pathEdit, &QLineEdit::returnPressed, this, &CustomCppToolGemWidget::OnPathEntered);
 
         setLayout(main);
     }
 
+    bool HasAssetBrowserEntries(const QMimeData* mime)
+    {
+        AZStd::vector<const AzToolsFramework::AssetBrowser::AssetBrowserEntry*> entries;
+        AzToolsFramework::AssetBrowser::AssetBrowserEntry::FromMimeData(mime, entries);
+        return !entries.empty();
+    }
+
+    // Event
+    void CustomCppToolGemWidget::dragEnterEvent(QDragEnterEvent* event)
+    {
+        if (HasAssetBrowserEntries(event->mimeData()))
+        {
+            event->acceptProposedAction();
+        }
+    }
+
+    void CustomCppToolGemWidget::dragMoveEvent(QDragMoveEvent* event)
+    {
+        if (HasAssetBrowserEntries(event->mimeData()))
+        {
+            event->acceptProposedAction();
+        }
+    }
+    
+    void CustomCppToolGemWidget::dropEvent(QDropEvent* event) {
+        if (HasAssetBrowserEntries(event->mimeData()))
+        {
+            using namespace AzToolsFramework::AssetBrowser;
+            event->acceptProposedAction();
+            AZ_Printf("CustomCppToolGem", "asset detected");
+            AZStd::vector<const AssetBrowserEntry*> entries;
+            AssetBrowserEntry::FromMimeData(event->mimeData(), entries);
+
+            for (const AssetBrowserEntry* entry : entries)
+            {
+                if (const auto* product = azrtti_cast<const ProductAssetBrowserEntry*>(entry))
+                {
+                    const AZ::Data::AssetId assetId = product->GetAssetId();
+                    const AZStd::string productPath = product->GetFullPath(); // product path on disk (e.g., cache file)
+                    const AZStd::string assetIdStr = assetId.ToString<AZStd::string>();
+
+                    AZ_Printf("CustomCppToolGem",
+                        "[Product] name='%s'\n  path='%s'\n  assetId=%s\n",
+                        product->GetName().c_str(),
+                        productPath.c_str(),
+                        assetIdStr.c_str());
+                } else if (const auto* source = azrtti_cast<const SourceAssetBrowserEntry*>(entry))
+                {
+                    const AZStd::string sourcePath = source->GetFullPath(); // absolute source path
+                    const AZ::Uuid sourceUuid = source->GetSourceUuid();
+                    const AZStd::string uuidStr = sourceUuid.ToString<AZStd::string>();
+
+                    AZ_Printf("CustomCppToolGem",
+                        "[Source] name='%s'\n  path='%s'\n  sourceUuid=%s\n",
+                        source->GetName().c_str(),
+                        sourcePath.c_str(),
+                        uuidStr.c_str());
+
+                    // Note: Source entries do not have an AssetId yet; products do.
+                }
+            } 
+        } 
+    }
+
+    void CustomCppToolGemWidget::OnPathEntered()
+    {
+        const QString rawPath = m_pathEdit->text().trimmed();
+        if (rawPath.isEmpty())
+        {
+            AZ_Warning("CustomCppToolGem", false, "Path is empty.");
+            return;
+        }
+
+
+    }
+
     AZ::Data::Asset<AZ::RPI::MaterialTypeAsset> LoadStandardPBRMaterialType()
     {
-        // Source path present in the engine/Gem (works once AP has scanned/processed assets)
-        const char* materialTypeSourcePath =
-            "@gemroot:Atom_Feature_Common@/Assets/Materials/Types/StandardPBR.materialtype";
-
-        // Ask the Asset Catalog for the AssetId of this MaterialType
-        AZ::Data::AssetId typeAssetId;
-        AZ::Data::AssetCatalogRequestBus::BroadcastResult(
-            typeAssetId,
-            &AZ::Data::AssetCatalogRequests::GetAssetIdByPath,
-            materialTypeSourcePath,
-            azrtti_typeid<AZ::RPI::MaterialTypeAsset>(),
-            /*autoRegisterIfNotFound*/ true); // true helps in editor if not yet registered
-
-        if (!typeAssetId.IsValid())
-        {
-            AZ_Error("CustomGem", false, "MaterialType not found via catalog: %s", materialTypeSourcePath);
-            return {};
-        }
-
-        // Load the asset via AssetManager and block
-        auto matType = AZ::Data::AssetManager::Instance().GetAsset<AZ::RPI::MaterialTypeAsset>(
-            typeAssetId, AZ::Data::AssetLoadBehavior::PreLoad);
-        matType.BlockUntilLoadComplete();
-
-        if (!matType.IsReady())
-        {
-            AZ_Error("CustomGem", false, "MaterialType failed to load: %s", typeAssetId.ToString<AZStd::string>().c_str());
-            return {};
-        }
-
-        return matType;
+        return {};
     }
 
     AZ::Data::Asset<AZ::RPI::MaterialAsset> CreateDefaultGrayMaterial() {
