@@ -1,4 +1,5 @@
 #include "ModelBuilder.h"
+#include "MeshUtils.h"
 
 #include <AzCore/Asset/AssetManager.h>
 #include <AzCore/Math/Vector3.h>
@@ -213,7 +214,7 @@ namespace CustomGem
 
         // UV coordinates (0,0) to (1,1)
         constexpr AZStd::array<float, 8> uvs = {
-            0.0f, 1.0f,
+            0.0f, 0.0f,
             1.0f, 0.0f,
             1.0f, 1.0f,
             0.0f, 1.0f
@@ -225,13 +226,20 @@ namespace CustomGem
             0, 2, 3
         };
 
+        constexpr AZStd::array<float, 16> tangents = {
+            1.0f, 0.0f, 0.0f, -1.0f,
+            1.0f, 0.0f, 0.0f, -1.0f,
+            1.0f, 0.0f, 0.0f, -1.0f,
+            1.0f, 0.0f, 0.0f, -1.0f
+        };
+
         // --- Call your ModelBuilder ---
         return ModelBuilder::CreateModel(
             AZ::Name("ProceduralPlane"),
             indices,
             positions,
             normals,
-            {},     // tangents (optional)
+            tangents,     // tangents (optional)
             {},     // bitangents (optional)
             uvs
         );
@@ -249,9 +257,9 @@ namespace CustomGem
 
         // 6 vertices per face, 6 faces.
         constexpr AZStd::array<uint32_t, VerticesPerFace * MeshFaces> indices = {
-                0,  1,  2,  0,  2,  3,   // front face
-                4,  5,  6,  4,  6,  7,   // right face
-                8,  9, 10,  8, 10, 11,   // back face
+            0,  1,  2,  0,  2,  3,   // front face
+            4,  5,  6,  4,  6,  7,   // right face
+            8,  9, 10,  8, 10, 11,   // back face
             12, 13, 14, 12, 14, 15,   // left face
             16, 17, 18, 16, 18, 19,   // top face
             20, 21, 22, 20, 22, 23    // bottom face

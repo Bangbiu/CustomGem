@@ -227,7 +227,7 @@ namespace CustomCppToolGem
         //         assetId, azrtti_typeid<AZ::RPI::ModelAsset>(), AZ::Data::AssetLoadBehavior::PreLoad);
         //     AZ::RPI::ModelAssetHelpers::CreateUnitX(modelAsset.Get());
         // }
-        AZ::Data::Asset<AZ::RPI::ModelAsset> modelAsset = CustomGem::ModelBuilder::BuildCube();
+        AZ::Data::Asset<AZ::RPI::ModelAsset> modelAsset = CustomGem::ModelBuilder::BuildPlane();
 
         AZ::Render::MeshComponentRequestBus::Event(
             entityId, &AZ::Render::MeshComponentRequests::SetModelAsset, modelAsset);
