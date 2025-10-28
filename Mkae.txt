@@ -1,0 +1,1 @@
+cmake --build build/windows --target CustomCppToolGem.Editor CustomCppToolGem --config profile -- -m

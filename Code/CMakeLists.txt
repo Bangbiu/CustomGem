@@ -140,6 +140,7 @@ if(PAL_TRAIT_BUILD_HOST_TOOLS)
             	AZ::AzCore
             	AZ::AzFramework
 	    	Gem::Atom_RPI.Public
+		    Gem::Atom_RHI.Reflect
 	    	Gem::Atom_Feature_Common.Public
 	    	Gem::AtomLyIntegration_CommonFeatures.Static
 
