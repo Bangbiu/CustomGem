@@ -203,84 +203,34 @@ namespace CustomGem
         );
     }
 
-    AZ::Data::Asset<AZ::RPI::ModelAsset> ModelBuilder::BuildPlane() {
-        using namespace CustomGem;
-
-        // 1) Stage geometry into MeshData via the utility
+    AZ::Data::Asset<AZ::RPI::ModelAsset> ModelBuilder::BuildPlane(const AZ::Vector3& pos) {
         MeshData mesh;
-        // plane = 1 => XZ plane (Y=0), normal +Y; corner = (0.5, 0, 0.5) gives a 1x1 quad
-        MeshUtils::FillQuad(mesh, AZ::Vector3(-0.5f, 0.0f, 0.5f), /*plane=*/1);
-
-        // 2) Feed CreateModel with spans over the staged vectors
+        MeshUtils::PushQuad(mesh, pos, 0);
         return CreateModel(AZ::Name("ProceduralPlane"), mesh);
     }
 
-    AZ::Data::Asset<AZ::RPI::ModelAsset> ModelBuilder::BuildCube() {
-        constexpr int ValuesPerPositionEntry = 3;
-        constexpr int ValuesPerUvEntry = 2;
-        constexpr int ValuesPerNormalEntry = 3;
-        constexpr int ValuesPerTangentEntry = 4;
+    AZ::Data::Asset<AZ::RPI::ModelAsset> ModelBuilder::BuildPlane(const float x, const float y, const float z) {
+        return BuildPlane(AZ::Vector3(x, y, z));
+    }
 
-        constexpr int VerticesPerFace = 6;
-        constexpr int MeshFaces = 6;
-        constexpr int ValuesPerFace = 4;
+    AZ::Data::Asset<AZ::RPI::ModelAsset> ModelBuilder::BuildPlane() {
+        return BuildPlane(-0.5f, 0.0f, 0.5f);
+    }
 
-        // 6 vertices per face, 6 faces.
-        constexpr AZStd::array<uint32_t, VerticesPerFace * MeshFaces> indices = {
-            0,  1,  2,  0,  2,  3,   // front face
-            4,  5,  6,  4,  6,  7,   // right face
-            8,  9, 10,  8, 10, 11,   // back face
-            12, 13, 14, 12, 14, 15,   // left face
-            16, 17, 18, 16, 18, 19,   // top face
-            20, 21, 22, 20, 22, 23    // bottom face
-        };
+    AZ::Data::Asset<AZ::RPI::ModelAsset> ModelBuilder::BuildCube()
+    {
+        MeshData mesh;
 
-        // 3 values per position, 4 positions per face, 6 faces
-        constexpr AZStd::array<float, ValuesPerPositionEntry * ValuesPerFace * MeshFaces> positions = {
-            -0.5f, -0.5f, -0.5f, +0.5f, -0.5f, -0.5f, +0.5f, -0.5f, +0.5f, -0.5f, -0.5f, +0.5f,     // front
-            +0.5f, -0.5f, -0.5f, +0.5f, +0.5f, -0.5f, +0.5f, +0.5f, +0.5f, +0.5f, -0.5f, +0.5f,     // right
-            +0.5f, +0.5f, -0.5f, -0.5f, +0.5f, -0.5f, -0.5f, +0.5f, +0.5f, +0.5f, +0.5f, +0.5f,     // back
-            -0.5f, +0.5f, -0.5f, -0.5f, -0.5f, -0.5f, -0.5f, -0.5f, +0.5f, -0.5f, +0.5f, +0.5f,     // left
-            -0.5f, -0.5f, +0.5f, +0.5f, -0.5f, +0.5f, +0.5f, +0.5f, +0.5f, -0.5f, +0.5f, +0.5f,     // top
-            -0.5f, +0.5f, -0.5f, +0.5f, +0.5f, -0.5f, +0.5f, -0.5f, -0.5f, -0.5f, -0.5f, -0.5f,     // bottom
-        };
+        // The cube extends from (0,0,0) to (1,1,1)
+        // Each PushQuad builds one oriented face at the corresponding side.
 
-        // 2 values per position, 4 positions per face, 6 faces
-        // This aribtrarily maps the UVs to use the full texture on each face.
-        // This choice can be changed if a different mapping would be more usable.
-        constexpr AZStd::array<float, ValuesPerUvEntry * ValuesPerFace * MeshFaces> uvs = {
-            0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,     // front
-            0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,     // right
-            0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,     // back
-            0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,     // left
-            0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,     // top
-            0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,     // bottom
-        };
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 1.0f, 1.0f), 0, {3, 0}); // +Z (front)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(1.0f, 1.0f, 0.0f), 1, {3, 2}); // -Z (back)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 1.0f, 0.0f), 2, {3, 1}); // -X (left)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(1.0f, 1.0f, 1.0f), 3, {3, 1}); // +X (right)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 1.0f, 1.0f), 4, {3, 1}); // +Y (top)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 0.0f, 0.0f), 5, {3, 1}); // -Y (bottom)
 
-        // 3 values per position, 4 positions per face, 6 faces
-        constexpr AZStd::array<float, ValuesPerNormalEntry * ValuesPerFace * MeshFaces> normals = {
-            +0.0f, -1.0f, +0.0f, +0.0f, -1.0f, +0.0f, +0.0f, -1.0f, +0.0f, +0.0f, -1.0f, +0.0f,     // front (-Y)
-            +1.0f, +0.0f, +0.0f, +1.0f, +0.0f, +0.0f, +1.0f, +0.0f, +0.0f, +1.0f, +0.0f, +0.0f,     // right (+X)
-            +0.0f, +1.0f, +0.0f, +0.0f, +1.0f, +0.0f, +0.0f, +1.0f, +0.0f, +0.0f, +1.0f, +0.0f,     // back (+Y)
-            -1.0f, +0.0f, +0.0f, -1.0f, +0.0f, +0.0f, -1.0f, +0.0f, +0.0f, -1.0f, +0.0f, +0.0f,     // left (-X)
-            +0.0f, +0.0f, +1.0f, +0.0f, +0.0f, +1.0f, +0.0f, +0.0f, +1.0f, +0.0f, +0.0f, +1.0f,     // top (+Z)
-            +0.0f, +0.0f, -1.0f, +0.0f, +0.0f, -1.0f, +0.0f, +0.0f, -1.0f, +0.0f, +0.0f, -1.0f,     // bottom (-Z)
-        };
-
-        // 4 values per position, 4 positions per face, 6 faces
-        constexpr AZStd::array<float, ValuesPerTangentEntry * ValuesPerFace * MeshFaces> tangents = {
-            0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // front (+Z)
-            0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // right (+Z)
-            0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // back (+Z)
-            0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // left (+Z)
-            0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, // top (+Y)
-            0.0f, -1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f, -1.0f, 0.0f, 1.0f, // bottom (-Y)
-        };
-
-        //CreateModel(modelAsset, AZ::Name("UnitCube"), indices, positions, normals, tangents, bitangents, uvs);
-        return CreateModel(
-            AZ::Name("UnitCube")
-            , indices, positions, normals, tangents, {}, uvs
-        );
+        return CreateModel(AZ::Name("ProceduralCube"), mesh);
     }
 } // namespace CustomGem

@@ -232,7 +232,7 @@ namespace CustomCppToolGem
 
     void CustomCppToolGemWidget::GenerateCubeEntityAtOrigin()
     {
-        AZ::Data::Asset<AZ::RPI::ModelAsset> modelAsset = CustomGem::ModelBuilder::BuildPlane();
+        AZ::Data::Asset<AZ::RPI::ModelAsset> modelAsset = CustomGem::ModelBuilder::BuildCube();
         GenerateMeshEntity(modelAsset, m_matAssetID);
     }
 
