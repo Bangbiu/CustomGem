@@ -3,42 +3,37 @@
 
 namespace CustomGem
 {
-    // Choose T (right) and B (up) so that:
-    // 1) corner is the TOP-LEFT vertex on the face's plane,
-    // 2) B points "up" within that plane by a consistent convention,
-    // 3) T x B = N (right-handed).
-    inline void ComputeFaceBasis(int orientation, AZ::Vector3& N, AZ::Vector3& T, AZ::Vector3& B)
+    inline void ComputeFaceBasisPositiveAxes(int orientation, AZ::Vector3& N, AZ::Vector3& T, AZ::Vector3& B)
     {
         switch (orientation)
         {
-        // +Z (front): screen-up = +Y, right = +X
-        case 0: N = { 0, 0,  1}; T = { 1, 0,  0}; B = { 0, 1,  0}; break;
-
-        // -Z (back): screen-up = +Y, right = -X
-        case 1: N = { 0, 0, -1}; T = {-1, 0,  0}; B = { 0, 1,  0}; break;
-
-        // -X (left): screen-up = +Y, right = +Z
-        case 2: N = {-1, 0,  0}; T = { 0, 0,  1}; B = { 0, 1,  0}; break;
-
-        // +X (right): screen-up = +Y, right = -Z
-        case 3: N = { 1, 0,  0}; T = { 0, 0, -1}; B = { 0, 1,  0}; break;
-
-        // +Y (top): screen-up = +Z, right = +X  (so top is towards +Z)
-        case 4: N = { 0, 1,  0}; T = { 1, 0,  0}; B = { 0, 0,  1}; break;
-
-        // -Y (bottom): screen-up = -Z, right = +X (so top is towards -Z)
-        case 5: N = { 0,-1,  0}; T = { 1, 0,  0}; B = { 0, 0, -1}; break;
-
-        default:
-            AZ_Assert(false, "FillQuad: orientation out of range [0..5]");
-            N = {0,0,1}; T = {1,0,0}; B = {0,1,0};
-            break;
+            case 0: N = { 0, 0,  1}; break; // +Z
+            case 1: N = { 0, 0, -1}; break; // -Z
+            case 2: N = {-1, 0,  0}; break; // -X
+            case 3: N = { 1, 0,  0}; break; // +X
+            case 4: N = { 0, 1,  0}; break; // +Y
+            case 5: N = { 0,-1,  0}; break; // -Y
+            default:
+                AZ_Assert(false, "PushQuad: orientation out of range [0..5]");
+                N = {0,0,1};
+                break;
         }
 
-        // Sanity: enforce right-handedness (T x B == N) by flipping T if needed
-        if (!AZ::IsClose((T.Cross(B)).Dot(N), 1.0f, 1e-3f))
-        {
-            T = -T;
+        // Pick T,B by plane so they always point to positive world axes of that plane
+        if (AZ::IsClose(AZStd::abs(N.GetZ()), 1.0f, 1e-6f))
+        {   // XY plane
+            T = { 1, 0, 0}; // +X
+            B = { 0, 1, 0}; // +Y
+        }
+        else if (AZ::IsClose(AZStd::abs(N.GetX()), 1.0f, 1e-6f))
+        {   // YZ plane
+            T = { 0, 0, 1}; // +Z
+            B = { 0, 1, 0}; // +Y
+        }
+        else
+        {   // ZX plane (abs(N.y) == 1)
+            T = { 1, 0, 0}; // +X
+            B = { 0, 0, 1}; // +Z
         }
     }
 
@@ -87,31 +82,46 @@ namespace CustomGem
     {
         AZ_Assert(orientation >= 0 && orientation <= 5, "PushQuad: orientation out of range [0..5]");
 
-        // Define per-orientation normal (N), tangent (T = +U direction), and bitangent (B = +V direction)
-        // Chosen so that T x B = N (right-handed).
         AZ::Vector3 N, T, B;
-        ComputeFaceBasis(orientation, N, T, B);
+        ComputeFaceBasisPositiveAxes(orientation, N, T, B);
 
+        // Build corners so geometry expands along +T and +B from 'corner'
         const uint32_t base = static_cast<uint32_t>(mesh.positions.size() / 3);
-        const AZ::Vector3 TL = corner;
-        const AZ::Vector3 TR = corner + T;        // right
-        const AZ::Vector3 BR = corner + T - B;    // right then down
-        const AZ::Vector3 BL = corner - B;        // down
+        const AZ::Vector3 LL = corner;          // lower-left (min along T & B)
+        const AZ::Vector3 LR = corner + T;      // +T
+        const AZ::Vector3 UR = corner + T + B;  // +T +B
+        const AZ::Vector3 UL = corner + B;      // +B
 
         float u0, v0, u1, v1;
         ComputeUvRect(uv, u0, v0, u1, v1);
 
-        // TL -> (u0,v0), TR -> (u1,v0), BR -> (u1,v1), BL -> (u0,v1)
-        PushVertex(mesh, TL, N, T, B, u0, v0);
-        PushVertex(mesh, TR, N, T, B, u1, v0);
-        PushVertex(mesh, BR, N, T, B, u1, v1);
-        PushVertex(mesh, BL, N, T, B, u0, v1);
+        // u along +T, v along +B
+        PushVertex(mesh, LL, N, T, B, u0, v0);
+        PushVertex(mesh, LR, N, T, B, u1, v0);
+        PushVertex(mesh, UR, N, T, B, u1, v1);
+        PushVertex(mesh, UL, N, T, B, u0, v1);
 
-        mesh.indices.insert(mesh.indices.end(),
+        // Maintain correct front-face winding: CCW when looking along +N.
+        const bool needsFlip = ((T.Cross(B)).Dot(N) < 0.0f);
+
+        if (!needsFlip)
         {
-            base + 0, base + 3, base + 2,
-            base + 0, base + 2, base + 1
-        });
+            // CCW: LL, LR, UR and LL, UR, UL
+            mesh.indices.insert(mesh.indices.end(),
+            {
+                base + 0, base + 1, base + 2,
+                base + 0, base + 2, base + 3
+            });
+        }
+        else
+        {
+            // Flip winding to keep face front-facing relative to N
+            mesh.indices.insert(mesh.indices.end(),
+            {
+                base + 0, base + 2, base + 1,
+                base + 0, base + 3, base + 2
+            });
+        }
     }
 
     void MeshUtils::PushQuad(MeshData& mesh, const AZ::Vector3& corner, int orientation) {

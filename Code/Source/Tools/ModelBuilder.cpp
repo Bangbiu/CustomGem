@@ -224,12 +224,52 @@ namespace CustomGem
         // The cube extends from (0,0,0) to (1,1,1)
         // Each PushQuad builds one oriented face at the corresponding side.
 
-        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 1.0f, 1.0f), 0, {3, 0}); // +Z (front)
-        MeshUtils::PushQuad(mesh, AZ::Vector3(1.0f, 1.0f, 0.0f), 1, {3, 2}); // -Z (back)
-        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 1.0f, 0.0f), 2, {3, 1}); // -X (left)
-        MeshUtils::PushQuad(mesh, AZ::Vector3(1.0f, 1.0f, 1.0f), 3, {3, 1}); // +X (right)
-        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 1.0f, 1.0f), 4, {3, 1}); // +Y (top)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 0.0f, 1.0f), 0, {3, 0}); // +Z (front)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 0.0f, 0.0f), 1, {3, 2}); // -Z (back)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 0.0f, 0.0f), 2, {3, 1}); // -X (left)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(1.0f, 0.0f, 0.0f), 3, {3, 1}); // +X (right)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 1.0f, 0.0f), 4, {3, 1}); // +Y (top)
         MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 0.0f, 0.0f), 5, {3, 1}); // -Y (bottom)
+
+        return CreateModel(AZ::Name("ProceduralCube"), mesh);
+    }
+
+    AZ::Data::Asset<AZ::RPI::ModelAsset> ModelBuilder::BuildOctCube() {
+                MeshData mesh;
+
+        // The cube extends from (0,0,0) to (1,1,1)
+        // Each PushQuad builds one oriented face at the corresponding side.
+
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 0.0f, 2.0f), 0, {3, 0}); // +Z (front)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 1.0f, 2.0f), 0, {3, 0}); // +Z (front)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(1.0f, 0.0f, 2.0f), 0, {3, 0}); // +Z (front)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(1.0f, 1.0f, 2.0f), 0, {3, 0}); // +Z (front)
+        
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 0.0f, 0.0f), 1, {3, 2}); // -Z (back)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 1.0f, 0.0f), 1, {3, 2}); // -Z (back)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(1.0f, 0.0f, 0.0f), 1, {3, 2}); // -Z (back)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(1.0f, 1.0f, 0.0f), 1, {3, 2}); // -Z (back)
+
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 0.0f, 0.0f), 2, {3, 1}); // -X (left)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 0.0f, 1.0f), 2, {3, 1}); // -X (left)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 1.0f, 0.0f), 2, {3, 1}); // -X (left)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 1.0f, 1.0f), 2, {3, 1}); // -X (left)
+
+
+        MeshUtils::PushQuad(mesh, AZ::Vector3(2.0f, 0.0f, 0.0f), 3, {3, 1}); // +X (right)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(2.0f, 0.0f, 1.0f), 3, {3, 1}); // +X (right)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(2.0f, 1.0f, 0.0f), 3, {3, 1}); // +X (right)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(2.0f, 1.0f, 1.0f), 3, {3, 1}); // +X (right)
+
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 2.0f, 0.0f), 4, {3, 1}); // +Y (top)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 2.0f, 1.0f), 4, {3, 1}); // +Y (top)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(1.0f, 2.0f, 0.0f), 4, {3, 1}); // +Y (top)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(1.0f, 2.0f, 1.0f), 4, {3, 1}); // +Y (top)
+
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 0.0f, 0.0f), 5, {3, 1}); // -Y (bottom)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(0.0f, 0.0f, 1.0f), 5, {3, 1}); // -Y (bottom)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(1.0f, 0.0f, 0.0f), 5, {3, 1}); // -Y (bottom)
+        MeshUtils::PushQuad(mesh, AZ::Vector3(1.0f, 0.0f, 1.0f), 5, {3, 1}); // -Y (bottom)
 
         return CreateModel(AZ::Name("ProceduralCube"), mesh);
     }

@@ -40,6 +40,7 @@ namespace CustomGem
         static AZ::Data::Asset<AZ::RPI::ModelAsset> BuildPlane(const AZ::Vector3& pos);
         static AZ::Data::Asset<AZ::RPI::ModelAsset> BuildPlane(const float x, const float y, const float z);
         static AZ::Data::Asset<AZ::RPI::ModelAsset> BuildCube();
+        static AZ::Data::Asset<AZ::RPI::ModelAsset> BuildOctCube();
     private:
         static AZ::Data::Asset<AZ::RPI::BufferAsset> MakeBufferAsset(
             const void* data, uint32_t elementCount, uint32_t elementSize);
