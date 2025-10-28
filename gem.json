@@ -1,7 +1,7 @@
 {
-    "gem_name": "CustomGem",
+    "gem_name": "CustomCppToolGem",
     "version": "1.0.0",
-    "display_name": "CustomGem",
+    "display_name": "CustomCppToolGem",
     "license": "License used i.e. Apache-2.0 or MIT",
     "license_url": "Link to the license web site i.e. https://opensource.org/licenses/Apache-2.0",
     "origin": "The name of the originator or creator",
@@ -12,7 +12,7 @@
         "Gem"
     ],
     "user_tags": [
-        "CustomGem"
+        "CustomCppToolGem"
     ],
     "platforms": [
         ""

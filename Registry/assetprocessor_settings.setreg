@@ -2,13 +2,13 @@
     "Amazon": {
         "AssetProcessor": {
             "Settings": {
-                "ScanFolder CustomGem/Assets": {
-                    "watch": "@GEMROOT:CustomGem@/Assets",
+                "ScanFolder CustomCppToolGem/Assets": {
+                    "watch": "@GEMROOT:CustomCppToolGem@/Assets",
                     "recursive": 1,
                     "order": 101
                 },
-                "ScanFolder CustomGem/Registry": {
-                    "watch": "@GEMROOT:CustomGem@/Registry",
+                "ScanFolder CustomCppToolGem/Registry": {
+                    "watch": "@GEMROOT:CustomCppToolGem@/Registry",
                     "recursive": 1,
                     "order": 102
                 }
