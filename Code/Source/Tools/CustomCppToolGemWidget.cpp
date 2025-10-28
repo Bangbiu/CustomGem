@@ -36,9 +36,7 @@
 #include <Atom/RPI.Reflect/Material/MaterialAsset.h>
 #include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentBus.h>
 #include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentConstants.h>
-#include <Atom/RPI.Reflect/Material/MaterialAssetCreator.h>
 #include <Atom/RPI.Reflect/Material/MaterialTypeAsset.h>
-#include <Atom/RPI.Edit/Material/MaterialUtils.h>
 
 //Browser
 #include <AzToolsFramework/AssetBrowser/Entries/AssetBrowserEntry.h>
@@ -58,6 +56,7 @@ namespace CustomCppToolGem
 {
     CustomCppToolGemWidget::CustomCppToolGemWidget(QWidget* parent)
         : QWidget(parent)
+        , m_matAssetID()
     {
 
         setAcceptDrops(true);
@@ -92,28 +91,6 @@ namespace CustomCppToolGem
         return !entries.empty();
     }
 
-    void PrintAliasVersion(const AZStd::string& absolutePath)
-    {
-        AZ::IO::FileIOBase* fileIO = AZ::IO::FileIOBase::GetInstance();
-        if (!fileIO)
-        {
-            AZ_Warning("CustomCppToolGem", false, "FileIOBase not available!");
-            return;
-        }
-
-        char aliasPath[AZ_MAX_PATH_LEN] = {};
-        azstrncpy(aliasPath, AZ_ARRAY_SIZE(aliasPath), absolutePath.c_str(), absolutePath.size());
-
-        if (fileIO->ConvertToAlias(aliasPath, AZ_ARRAY_SIZE(aliasPath)))
-        {
-            AZ_Printf("CustomCppToolGem", "Alias Path: %s", aliasPath);
-        }
-        else
-        {
-            AZ_Warning("CustomCppToolGem", false, "Failed to convert to alias: %s", absolutePath.c_str());
-        }
-    }
-
     // Event
     void CustomCppToolGemWidget::dragEnterEvent(QDragEnterEvent* event)
     {
@@ -130,13 +107,36 @@ namespace CustomCppToolGem
             event->acceptProposedAction();
         }
     }
+
+    bool IsMaterialAssetId(const AZ::Data::AssetId& assetId)
+    {
+        if (!assetId.IsValid())
+        {
+            return false;
+        }
+
+        // Ask the catalog for info (includes the asset's type UUID)
+        AZ::Data::AssetInfo info;
+        AZ::Data::AssetCatalogRequestBus::BroadcastResult(
+            info, &AZ::Data::AssetCatalogRequests::GetAssetInfoById, assetId);
+
+        if (!info.m_assetId.IsValid())
+        {
+            return false;
+        }
+
+        const AZ::Data::AssetType matType      = azrtti_typeid<AZ::RPI::MaterialAsset>();
+        const AZ::Data::AssetType matTypeType  = azrtti_typeid<AZ::RPI::MaterialTypeAsset>();
+
+        return (info.m_assetType == matType) || (info.m_assetType == matTypeType);
+    }
     
     void CustomCppToolGemWidget::dropEvent(QDropEvent* event) {
         if (HasAssetBrowserEntries(event->mimeData()))
         {
             using namespace AzToolsFramework::AssetBrowser;
             event->acceptProposedAction();
-            AZ_Printf("CustomCppToolGem", "asset detected");
+            AZ_Printf("CustomCppToolGem", "Asset Detected");
             AZStd::vector<const AssetBrowserEntry*> entries;
             AssetBrowserEntry::FromMimeData(event->mimeData(), entries);
 
@@ -153,21 +153,11 @@ namespace CustomCppToolGem
                         product->GetName().c_str(),
                         productPath.c_str(),
                         assetIdStr.c_str());
-                    PrintAliasVersion(productPath);
-                    
-                } else if (const auto* source = azrtti_cast<const SourceAssetBrowserEntry*>(entry))
-                {
-                    const AZStd::string sourcePath = source->GetFullPath(); // absolute source path
-                    const AZ::Uuid sourceUuid = source->GetSourceUuid();
-                    const AZStd::string uuidStr = sourceUuid.ToString<AZStd::string>();
 
-                    AZ_Printf("CustomCppToolGem",
-                        "[Source] name='%s'\n  path='%s'\n  sourceUuid=%s\n",
-                        source->GetName().c_str(),
-                        sourcePath.c_str(),
-                        uuidStr.c_str());
-                    PrintAliasVersion(sourcePath);
-                    // Note: Source entries do not have an AssetId yet; products do.
+                    if (IsMaterialAssetId(assetId)) {
+                        m_matAssetID = assetId;
+                        m_pathEdit->setText(product->GetName().c_str());
+                    }
                 }
             } 
         } 
@@ -181,45 +171,6 @@ namespace CustomCppToolGem
             AZ_Warning("CustomCppToolGem", false, "Path is empty.");
             return;
         }
-
-
-    }
-
-    AZ::Data::Asset<AZ::RPI::MaterialTypeAsset> LoadStandardPBRMaterialType()
-    {
-        const char* path = "@gemroot:Atom_Feature_Common@/Assets/Materials/Types/StandardPBR.materialtype";
-        bool found = false;
-        AZ::Data::AssetInfo sourceInfo;
-        AZStd::string rootFolder;
-        AzToolsFramework::AssetSystemRequestBus::BroadcastResult(
-            found, &AzToolsFramework::AssetSystemRequestBus::Events::GetSourceInfoBySourcePath, path, sourceInfo, rootFolder);
-
-        if (found)
-        {
-            const AZStd::string assetIdStr = sourceInfo.m_assetId.ToString<AZStd::string>();
-            AZ_Printf("CustomCppToolGem", "PBR ID: %s", assetIdStr.c_str());
-            
-        }
-        return {};
-
-    }
-
-    AZ::Data::Asset<AZ::RPI::MaterialAsset> CreateDefaultGrayMaterial() {
-        using namespace AZ::RPI;
-
-        AZ::Data::Asset<AZ::RPI::MaterialTypeAsset> matType = LoadStandardPBRMaterialType();
-
-        // AZ::Data::Asset<AZ::RPI::MaterialAsset> matAsset;
-        // {
-        //     const AZ::Data::AssetId matId(AZ::Uuid::CreateRandom());
-        //     MaterialAssetCreator creator;
-        //     creator.Begin(matId, matType);
-        //     creator.SetPropertyValue(AZ::Name("baseColor.color"), AZ::Color(0.8f, 0.8f, 0.8f, 1.0f));
-        //     creator.End(matAsset);
-        // }
-
-        // return matAsset;
-        return {};
     }
 
     void CustomCppToolGemWidget::OnGenerateClicked()
@@ -269,15 +220,11 @@ namespace CustomCppToolGem
         AZ::Render::MeshComponentRequestBus::Event(
             entityId, &AZ::Render::MeshComponentRequests::SetModelAsset, modelAsset);
 
-        // 4) Load default material asset (engine-provided)
-        AZ::Data::Asset<AZ::RPI::MaterialAsset> materialAsset =
-            AZ::RPI::AssetUtils::LoadAssetByProductPath<AZ::RPI::MaterialAsset>(
-                "materials/defaultpbr.azmaterial", AZ::RPI::AssetUtils::TraceLevel::Warning);
-        CreateDefaultGrayMaterial();
-
         // 5) Apply it to the material component
-        AZ::Render::MaterialComponentRequestBus::Event(
-            entityId, &AZ::Render::MaterialComponentRequests::SetMaterialAssetIdOnDefaultSlot, materialAsset.GetId());
+        if (m_matAssetID.IsValid()) {
+            AZ::Render::MaterialComponentRequestBus::Event(
+                        entityId, &AZ::Render::MaterialComponentRequests::SetMaterialAssetIdOnDefaultSlot, m_matAssetID);
+        }
         
         // 6) Make it easy to see: select the new entity in the outliner
         AzToolsFramework::EntityIdList selection{ entityId };

@@ -26,8 +26,12 @@ namespace CustomCppToolGem
         void dropEvent(QDropEvent* event) override;
 
     private:
-        void GenerateCubeEntityAtOrigin();
+        AZ::Data::AssetId m_matAssetID;
+
         QLineEdit* m_pathEdit = nullptr;
+
+        void GenerateCubeEntityAtOrigin();
+        
         
 
     private Q_SLOTS:
