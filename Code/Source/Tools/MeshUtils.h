@@ -34,11 +34,18 @@ namespace CustomGem
 
     struct MeshUtils
     {
-        //! Append a quad defined by two opposite corners to a MeshData.
+        //! Append a quad defined corner and plane
         //! @param mesh Target mesh data to append to
-        //! @param corner The corner of the quad
+        //! @param corner The top left corner of the quad
         //! @param plane x,y,z plane
-        //! The quad will be on the plane
+        //! The quad will be on the plane always be 1x1
         static void FillQuad(MeshData& mesh, const AZ::Vector3& corner, int plane);
+
+        static void PushVertex(MeshData& m,
+                               const AZ::Vector3& p,
+                               const AZ::Vector3& n,
+                               const AZ::Vector3& t,
+                               const AZ::Vector3& b,
+                               float u, float v);
     };
 }

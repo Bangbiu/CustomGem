@@ -17,14 +17,9 @@
 #include <AzCore/Component/TransformBus.h>
 #include <AzCore/Math/Vector3.h>
 
-#include <AzToolsFramework/API/ToolsApplicationAPI.h>
 #include <AzToolsFramework/API/EditorEntityAPI.h>
 #include <AzToolsFramework/API/EditorAssetSystemAPI.h>
 #include <AzToolsFramework/ToolsComponents/TransformComponent.h>
-
-// Atom (Model helpers)
-#include <Atom/RPI.Reflect/Model/ModelAsset.h>
-#include <Atom/RPI.Reflect/Model/ModelAssetHelpers.h>
 
 // Editor Mesh (preview in Editor)
 #include <AtomLyIntegration/CommonFeatures/Mesh/MeshComponentBus.h>
@@ -190,9 +185,11 @@ namespace CustomCppToolGem
         GenerateCubeEntityAtOrigin();
     }
 
-    void CustomCppToolGemWidget::GenerateCubeEntityAtOrigin()
-    {
-        // 1) Create a new *Editor* entity (shows up immediately in the outliner & viewport)
+    void CustomCppToolGemWidget::GenerateMeshEntity(
+        AZ::Data::Asset<AZ::RPI::ModelAsset>& modelAsset, 
+        AZ::Data::AssetId& matAssetID) {
+
+        // Create a new *Editor* entity (shows up immediately in the outliner & viewport)
         AZ::EntityId entityId;
         AzToolsFramework::EditorEntityContextRequestBus::BroadcastResult(
             entityId,
@@ -205,9 +202,7 @@ namespace CustomCppToolGem
             return;
         }
 
-
-        // 2) Add Transform + Mesh (+ Material) editor components
-        //    We use the editor component API to add by type id.
+        // Set Component Type
         AZ::ComponentTypeList typeIds = {
             azrtti_typeid<AzToolsFramework::Components::TransformComponent>(),
             AZ::Render::EditorMeshComponentTypeId,
@@ -218,30 +213,27 @@ namespace CustomCppToolGem
             &AzToolsFramework::EditorComponentAPIRequests::AddComponentsOfType,
             entityId, typeIds);
         
-        
-        // 3) Assign Model
-        // AZ::Data::Asset<AZ::RPI::ModelAsset> modelAsset;
-        // {
-        //     const AZ::Data::AssetId assetId(AZ::Uuid::CreateRandom());
-        //     modelAsset = AZ::Data::AssetManager::Instance().CreateAsset(
-        //         assetId, azrtti_typeid<AZ::RPI::ModelAsset>(), AZ::Data::AssetLoadBehavior::PreLoad);
-        //     AZ::RPI::ModelAssetHelpers::CreateUnitX(modelAsset.Get());
-        // }
-        AZ::Data::Asset<AZ::RPI::ModelAsset> modelAsset = CustomGem::ModelBuilder::BuildPlane();
-
+        // Set Model
         AZ::Render::MeshComponentRequestBus::Event(
             entityId, &AZ::Render::MeshComponentRequests::SetModelAsset, modelAsset);
 
-        // 5) Apply it to the material component
-        if (m_matAssetID.IsValid()) {
-            AZ::Render::MaterialComponentRequestBus::Event(
-                        entityId, &AZ::Render::MaterialComponentRequests::SetMaterialAssetIdOnDefaultSlot, m_matAssetID);
-        }
         
-        // 6) Make it easy to see: select the new entity in the outliner
+        // Apply Material
+        if (matAssetID.IsValid()) {
+            AZ::Render::MaterialComponentRequestBus::Event(
+                        entityId, &AZ::Render::MaterialComponentRequests::SetMaterialAssetIdOnDefaultSlot, matAssetID);
+        }
+
+        // Make it easy to see: select the new entity in the outliner
         AzToolsFramework::EntityIdList selection{ entityId };
         AzToolsFramework::ToolsApplicationRequestBus::Broadcast(
             &AzToolsFramework::ToolsApplicationRequests::SetSelectedEntities, selection);
+    }
+
+    void CustomCppToolGemWidget::GenerateCubeEntityAtOrigin()
+    {
+        AZ::Data::Asset<AZ::RPI::ModelAsset> modelAsset = CustomGem::ModelBuilder::BuildPlane();
+        GenerateMeshEntity(modelAsset, m_matAssetID);
     }
 
 }

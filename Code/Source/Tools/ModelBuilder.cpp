@@ -1,5 +1,4 @@
 #include "ModelBuilder.h"
-#include "MeshUtils.h"
 
 #include <AzCore/Asset/AssetManager.h>
 #include <AzCore/Math/Vector3.h>
@@ -186,63 +185,34 @@ namespace CustomGem
         return result;
     }
 
+
+    AZ::Data::Asset<AZ::RPI::ModelAsset> ModelBuilder::CreateModel(
+        const AZ::Name& name,
+        const MeshData& mesh)
+    {
+        // AZ_Printf("CustomGem", "Creating model '%s' with %zu vertices and %zu indices.\n",
+        //     name.c_str(), meshData.positions.size() / 3, meshData.indices.size());
+        return CreateModel(
+            name,
+            AZStd::span<const uint32_t>(mesh.indices.data(),    mesh.indices.size()),
+            AZStd::span<const float>(   mesh.positions.data(),  mesh.positions.size()),
+            AZStd::span<const float>(   mesh.normals.data(),    mesh.normals.size()),
+            AZStd::span<const float>(   mesh.tangents.data(),   mesh.tangents.size()),
+            AZStd::span<const float>(   mesh.bitangents.data(), mesh.bitangents.size()),
+            AZStd::span<const float>(   mesh.uvs.data(),        mesh.uvs.size())
+        );
+    }
+
     AZ::Data::Asset<AZ::RPI::ModelAsset> ModelBuilder::BuildPlane() {
         using namespace CustomGem;
-        using namespace AZ;
 
-        // --- Define plane vertices (centered at origin, facing +Z or +Y) ---
-        // We'll use a flat horizontal plane (XZ plane, Y up)
-        // Vertex order (counter-clockwise):
-        //   (-0.5, 0, -0.5)
-        //   ( 0.5, 0, -0.5)
-        //   ( 0.5, 0,  0.5)
-        //   (-0.5, 0,  0.5)
-        constexpr AZStd::array<float, 12> positions = {
-            -0.5f, 0.0f, -0.5f,
-            0.5f, 0.0f, -0.5f,
-            0.5f, 0.0f,  0.5f,
-            -0.5f, 0.0f,  0.5f
-        };
+        // 1) Stage geometry into MeshData via the utility
+        MeshData mesh;
+        // plane = 1 => XZ plane (Y=0), normal +Y; corner = (0.5, 0, 0.5) gives a 1x1 quad
+        MeshUtils::FillQuad(mesh, AZ::Vector3(-0.5f, 0.0f, 0.5f), /*plane=*/1);
 
-        // All normals face up (0,1,0)
-        constexpr AZStd::array<float, 12> normals = {
-            0.0f, 1.0f, 0.0f,
-            0.0f, 1.0f, 0.0f,
-            0.0f, 1.0f, 0.0f,
-            0.0f, 1.0f, 0.0f
-        };
-
-        // UV coordinates (0,0) to (1,1)
-        constexpr AZStd::array<float, 8> uvs = {
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f
-        };
-
-        // Indices (two triangles forming the quad)
-        constexpr AZStd::array<uint32_t, 6> indices = {
-            0, 1, 2,
-            0, 2, 3
-        };
-
-        constexpr AZStd::array<float, 16> tangents = {
-            1.0f, 0.0f, 0.0f, -1.0f,
-            1.0f, 0.0f, 0.0f, -1.0f,
-            1.0f, 0.0f, 0.0f, -1.0f,
-            1.0f, 0.0f, 0.0f, -1.0f
-        };
-
-        // --- Call your ModelBuilder ---
-        return ModelBuilder::CreateModel(
-            AZ::Name("ProceduralPlane"),
-            indices,
-            positions,
-            normals,
-            tangents,     // tangents (optional)
-            {},     // bitangents (optional)
-            uvs
-        );
+        // 2) Feed CreateModel with spans over the staged vectors
+        return CreateModel(AZ::Name("ProceduralPlane"), mesh);
     }
 
     AZ::Data::Asset<AZ::RPI::ModelAsset> ModelBuilder::BuildCube() {

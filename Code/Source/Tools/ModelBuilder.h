@@ -1,4 +1,5 @@
 #pragma once
+#include "MeshUtils.h"
 
 #include <AzCore/Asset/AssetCommon.h>
 #include <AzCore/Math/Aabb.h>
@@ -30,6 +31,10 @@ namespace CustomGem
             AZStd::span<const float> tangents,
             AZStd::span<const float> bitangents,
             AZStd::span<const float> uvs);
+
+        static AZ::Data::Asset<AZ::RPI::ModelAsset> CreateModel(
+            const AZ::Name& name,
+            const MeshData& mesh);
         
         static AZ::Data::Asset<AZ::RPI::ModelAsset> BuildPlane();
         static AZ::Data::Asset<AZ::RPI::ModelAsset> BuildCube();

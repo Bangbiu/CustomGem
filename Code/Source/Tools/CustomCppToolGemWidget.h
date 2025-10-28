@@ -2,6 +2,8 @@
 
 #if !defined(Q_MOC_RUN)
 #include <AzToolsFramework/API/ToolsApplicationAPI.h>
+#include <Atom/RPI.Reflect/Model/ModelAsset.h>
+
 #include <QWidget>
 #include <QLineEdit>
 
@@ -31,7 +33,10 @@ namespace CustomCppToolGem
         QLineEdit* m_pathEdit = nullptr;
 
         void GenerateCubeEntityAtOrigin();
-        
+        void GenerateMeshEntity(
+            AZ::Data::Asset<AZ::RPI::ModelAsset>& modelAsset, 
+            AZ::Data::AssetId& matAssetID
+        );
         
 
     private Q_SLOTS:
