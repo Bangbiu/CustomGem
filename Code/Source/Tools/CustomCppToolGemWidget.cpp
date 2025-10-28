@@ -68,12 +68,14 @@ namespace CustomCppToolGem
 
         auto* row = new QHBoxLayout();
         auto* btnGenerate = new QPushButton(tr("Generate"), this);
+        btnGenerate->setObjectName("Generate Button");
         row->addStretch(1);
         row->addWidget(btnGenerate);
         row->addStretch(1);
 
         m_pathEdit = new QLineEdit(this);
-        m_pathEdit->setPlaceholderText(tr(R"(e.g. C:\Projects\MyGame\Assets or @projectroot@/Assets)"));
+        m_pathEdit->setPlaceholderText(tr(R"(Drag Material Assets)"));
+        m_pathEdit->setObjectName("PathDropZone");
         row->addWidget(m_pathEdit);
 
         main->addLayout(row);
@@ -132,6 +134,16 @@ namespace CustomCppToolGem
     }
     
     void CustomCppToolGemWidget::dropEvent(QDropEvent* event) {
+
+        const QPoint localPos = event->pos();
+
+        QWidget* target = childAt(localPos);   // nullptr means it hit the parent background
+        if (!target) target = this;
+
+        // Identify the zone by objectName
+        const QString targetName = target->objectName();
+        AZ_Printf("CustomCppToolGem", "On Asset Box: %s", targetName.toStdString().c_str());
+
         if (HasAssetBrowserEntries(event->mimeData()))
         {
             using namespace AzToolsFramework::AssetBrowser;
@@ -214,7 +226,7 @@ namespace CustomCppToolGem
             const AZ::Data::AssetId assetId(AZ::Uuid::CreateRandom());
             modelAsset = AZ::Data::AssetManager::Instance().CreateAsset(
                 assetId, azrtti_typeid<AZ::RPI::ModelAsset>(), AZ::Data::AssetLoadBehavior::PreLoad);
-            AZ::RPI::ModelAssetHelpers::CreateUnitCube(modelAsset.Get());
+            AZ::RPI::ModelAssetHelpers::CreateUnitX(modelAsset.Get());
         }
 
         AZ::Render::MeshComponentRequestBus::Event(
@@ -231,6 +243,7 @@ namespace CustomCppToolGem
         AzToolsFramework::ToolsApplicationRequestBus::Broadcast(
             &AzToolsFramework::ToolsApplicationRequests::SetSelectedEntities, selection);
     }
+
 }
 
 #include <moc_CustomCppToolGemWidget.cpp>
