@@ -32,6 +32,7 @@
 #include <AzToolsFramework/Component/EditorComponentAPIBus.h>
 
 // Material
+
 #include <Atom/RPI.Reflect/Material/MaterialAsset.h>
 #include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentBus.h>
 #include <AtomLyIntegration/CommonFeatures/Material/MaterialComponentConstants.h>
@@ -46,6 +47,7 @@
 
 // Debug
 #include <AzCore/Debug/Trace.h>
+#include <AzCore/IO/FileIO.h>
 
 // Header
 #include "CustomCppToolGemWidget.h"
@@ -90,6 +92,28 @@ namespace CustomCppToolGem
         return !entries.empty();
     }
 
+    void PrintAliasVersion(const AZStd::string& absolutePath)
+    {
+        AZ::IO::FileIOBase* fileIO = AZ::IO::FileIOBase::GetInstance();
+        if (!fileIO)
+        {
+            AZ_Warning("CustomCppToolGem", false, "FileIOBase not available!");
+            return;
+        }
+
+        char aliasPath[AZ_MAX_PATH_LEN] = {};
+        azstrncpy(aliasPath, AZ_ARRAY_SIZE(aliasPath), absolutePath.c_str(), absolutePath.size());
+
+        if (fileIO->ConvertToAlias(aliasPath, AZ_ARRAY_SIZE(aliasPath)))
+        {
+            AZ_Printf("CustomCppToolGem", "Alias Path: %s", aliasPath);
+        }
+        else
+        {
+            AZ_Warning("CustomCppToolGem", false, "Failed to convert to alias: %s", absolutePath.c_str());
+        }
+    }
+
     // Event
     void CustomCppToolGemWidget::dragEnterEvent(QDragEnterEvent* event)
     {
@@ -129,6 +153,8 @@ namespace CustomCppToolGem
                         product->GetName().c_str(),
                         productPath.c_str(),
                         assetIdStr.c_str());
+                    PrintAliasVersion(productPath);
+                    
                 } else if (const auto* source = azrtti_cast<const SourceAssetBrowserEntry*>(entry))
                 {
                     const AZStd::string sourcePath = source->GetFullPath(); // absolute source path
@@ -140,7 +166,7 @@ namespace CustomCppToolGem
                         source->GetName().c_str(),
                         sourcePath.c_str(),
                         uuidStr.c_str());
-
+                    PrintAliasVersion(sourcePath);
                     // Note: Source entries do not have an AssetId yet; products do.
                 }
             } 
@@ -161,7 +187,21 @@ namespace CustomCppToolGem
 
     AZ::Data::Asset<AZ::RPI::MaterialTypeAsset> LoadStandardPBRMaterialType()
     {
+        const char* path = "@gemroot:Atom_Feature_Common@/Assets/Materials/Types/StandardPBR.materialtype";
+        bool found = false;
+        AZ::Data::AssetInfo sourceInfo;
+        AZStd::string rootFolder;
+        AzToolsFramework::AssetSystemRequestBus::BroadcastResult(
+            found, &AzToolsFramework::AssetSystemRequestBus::Events::GetSourceInfoBySourcePath, path, sourceInfo, rootFolder);
+
+        if (found)
+        {
+            const AZStd::string assetIdStr = sourceInfo.m_assetId.ToString<AZStd::string>();
+            AZ_Printf("CustomCppToolGem", "PBR ID: %s", assetIdStr.c_str());
+            
+        }
         return {};
+
     }
 
     AZ::Data::Asset<AZ::RPI::MaterialAsset> CreateDefaultGrayMaterial() {
@@ -184,7 +224,7 @@ namespace CustomCppToolGem
 
     void CustomCppToolGemWidget::OnGenerateClicked()
     {
-        AZ_Printf("CustomGem", "Not Implemented");
+        AZ_Printf("CustomGem", "Information");
         GenerateCubeEntityAtOrigin();
     }
 

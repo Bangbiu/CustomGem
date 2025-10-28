@@ -25,13 +25,14 @@ namespace CustomCppToolGem
         void dragMoveEvent(QDragMoveEvent* event) override;
         void dropEvent(QDropEvent* event) override;
 
-    private Q_SLOTS:
-        void OnGenerateClicked();
-        void OnPathEntered();  
-
     private:
         void GenerateCubeEntityAtOrigin();
         QLineEdit* m_pathEdit = nullptr;
+        
+
+    private Q_SLOTS:
+        void OnGenerateClicked();
+        void OnPathEntered();  
         
     };
 }
